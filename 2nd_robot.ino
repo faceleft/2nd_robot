@@ -21,7 +21,7 @@ void echo_high(){
 template<int i>
 void echo_low(){
   if(flag[i]){
-    pulse_time_us[i] = millis()-timer[i];
+    pulse_time_us[i] = micros()-timer[i];
     flag[i] = false;
     change_flag = true;
     ready_flag = true;
