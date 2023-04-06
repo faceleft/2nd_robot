@@ -2,54 +2,45 @@
 
 volatile bool flag[SR_COUNT];
 volatile bool change_flag;
+volatile bool ready_flag[SR_COUNT];
+
 volatile unsigned long timer[SR_COUNT];
 volatile unsigned long pulse_time_us[SR_COUNT];
+
+unsigned long timeout[SR_COUNT];
 
 const uint8_t echo_pins[SR_COUNT] = {0,1,2};
 const uint8_t trig_pins[SR_COUNT] = {3,4,5};
 
-
-void echo0_high(){
-  timer[0] = micros();   
-  flag[0] = true;
-}
-void echo1_high(){
-  timer[1] = micros();   
-  flag[1] = true;
-}
-void echo2_high(){
-  timer[2] = micros();   
-  flag[2] = true;
+template<uint8_t i>
+void echo_high(){
+  timer[i] = micros();   
+  flag[i] = true;
 }
 
-void echo0_low(){
-  if(flag[0]){
-    pulse_time_us[0] = micros()-timer[0];
-    flag[0] = false;
+template<uint8_t i>
+void echo_low(){
+  if(flag[i]){
+    pulse_time_us[i] = millis()-timer[i];
+    flag[i] = false;
     change_flag = true;
+    ready_flag = true;
   }    
 }
-void echo1_low(){
-  if(flag[1]){
-    pulse_time_us[1] = micros()-timer[1];
-    flag[1] = false;
-    change_flag = true;
-  } 
-}
-void echo2_low(){
-  if(flag[2]){
-    pulse_time_us[2] = micros()-timer[2];
-    flag[2] = false;
-    change_flag = true;
-  } 
-}
 
-inline void send_pulse(int i){
-    digitalWrite(trig_pins[i], 0);
-    delayMicroseconds(2);
-    digitalWrite(trig_pins[i], 1);
-    delayMicroseconds(10);
-    digitalWrite(trig_pins[i], 0);
+
+inline void send_pulse(){
+    for(int i=0;i<SR_COUNT;i++){
+      if(ready_flag[i] ||micros()-timeout[i] > 100){
+        digitalWrite(trig_pins[i], 0);
+        delayMicroseconds(2);
+        digitalWrite(trig_pins[i], 1);
+        delayMicroseconds(10);
+        digitalWrite(trig_pins[i], 0);
+        ready_flag[i]=false;
+        timeout[i]=millis();
+      }
+    }
 }
 
 void setup(){
@@ -58,14 +49,17 @@ void setup(){
     for(int i = 0; i < SR_COUNT; i++) {
       flag[i] = false;   
       change_flag[i] = false;
+      ready_flag[i] = true;
+      timeout[i] = millis();
     }
-    attachInterrupt(echo_pins[0], echo0_high, RISING);
-    attachInterrupt(echo_pins[1], echo1_high, RISING);
-    attachInterrupt(echo_pins[2], echo2_high, RISING);
+    attachInterrupt(echo_pins[0], echo_high<0>, RISING);
+    attachInterrupt(echo_pins[1], echo_high<1>, RISING);
+    attachInterrupt(echo_pins[2], echo_high<2>, RISING);
 
-    attachInterrupt(echo_pins[0], echo0_low, FALLING);
-    attachInterrupt(echo_pins[1], echo1_low, FALLING);
-    attachInterrupt(echo_pins[2], echo2_low, FALLING);
+    attachInterrupt(echo_pins[0], echo_low<0>, FALLING);
+    attachInterrupt(echo_pins[1], echo_low<1>, FALLING);
+    attachInterrupt(echo_pins[2], echo_low<2>, FALLING);
+  send_pulse();
 }
 
 void loop(){
@@ -74,7 +68,10 @@ void loop(){
       Serial.print("Sensors: ");
       for(int i = 0; i < SR_COUNT; i++){
         Serial.print(pulse_time_us[i]);
+        Serial.print(" ");
       }
       Serial.println();
     }
+    
+    
 }
