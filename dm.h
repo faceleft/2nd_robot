@@ -1,69 +1,83 @@
 #ifndef DM_H
 #define DM_H
 #include <Arduino.h>
-#define DM_SENSORS_NUM 3
+
 namespace dm {
-    // prefs
-    const int ECHO_PINS[DM_SENSORS_NUM] = {0, 1, 2};
-    const int TRIG_PINS[DM_SENSORS_NUM] = {3, 4, 5};
+// prefs
+const int SENSORS_NUM = 1;
+const int ECHO_PINS[SENSORS_NUM] = {3};
+const int TRIG_PINS[SENSORS_NUM] = {2};
 
-    volatile bool pulseFlag[DM_SENSORS_NUM];
-    volatile bool changeFlag;
-    volatile bool readyFlag[DM_SENSORS_NUM];
+volatile bool pulseFlag[SENSORS_NUM];
+volatile bool changeFlag;
+volatile bool readyFlag[SENSORS_NUM];
 
-    volatile unsigned long timer[DM_SENSORS_NUM];
-    volatile unsigned long pulseTimeUs[DM_SENSORS_NUM];
+volatile unsigned long timer[SENSORS_NUM];
+volatile unsigned long pulseTimeUs[SENSORS_NUM];
 
-    unsigned long timeout[DM_SENSORS_NUM];
+unsigned long timeout[SENSORS_NUM];
+volatile int con = 0;
 
-    template <int i>
-    void echoHigh() {
+bool digitalReadFast(uint8_t pin) {
+  if (pin < 8) {
+    return bitRead(PIND, pin);
+  } else if (pin < 14) {
+    return bitRead(PINB, pin - 8);
+  } else if (pin < 20) {
+    return bitRead(PINC, pin - 14);    // Return pin state
+  }
+}
+
+template <int i>
+void echo() {
+  bool highOrLow = digitalReadFast(ECHO_PINS[0]);
+  con++;
+  if (pulseFlag[i] && !highOrLow) {
+    pulseTimeUs[i] = micros() - timer[i];
+    pulseFlag[i] = false;
+    changeFlag = true;
+    readyFlag[i] = true;
+  }
+  else if(highOrLow){
     timer[i] = micros();
     pulseFlag[i] = true;
-    }
+  }
+}
 
-    template <int i>
-    void echoLow() {
-    if (pulseFlag[i]) {
-        pulseTimeUs[i] = micros() - timer[i];
-        pulseFlag[i] = false;
-        changeFlag = true;
-        readyFlag[i] = true;
+void sendingPulses() {
+  for (int i = 0; i < SENSORS_NUM; i++) {
+    if (readyFlag[i] || millis() - timeout[i] > 50) {
+      digitalWrite(TRIG_PINS[i], 1);
+      delayMicroseconds(10);
+      digitalWrite(TRIG_PINS[i], 0);
+      readyFlag[i] = false;
+      timeout[i] = millis();
     }
-    }
+  }
+}
 
-    void pulse() {
-    for (int i = 0; i < DM_SENSORS_NUM; i++)
-        digitalWrite(TRIG_PINS[i], 0);
-    for (int i = 0; i < DM_SENSORS_NUM; i++) {
-        if (readyFlag[i] || micros() - timeout[i] > 500) {
-        digitalWrite(TRIG_PINS[i], 1);
-        delayMicroseconds(10);
-        digitalWrite(TRIG_PINS[i], 0);
-        readyFlag[i] = false;
-        timeout[i] = millis();
-        }
-    }
-    }
+void init() {
+  changeFlag = false;
+  for (int i = 0; i < SENSORS_NUM; i++) {
+    pulseFlag[i] = false;
+    readyFlag[i] = true;
+    timeout[i] = millis();
+    pinMode(TRIG_PINS[i], OUTPUT);
+    pinMode(ECHO_PINS[i], INPUT);
+    digitalWrite(TRIG_PINS[i], 0);
 
-    void init() {
-    changeFlag = false;
-    for (int i = 0; i < DM_SENSORS_NUM; i++) {
-        pulseFlag[i] = false;
-        readyFlag[i] = true;
-        timeout[i] = millis();
-    }
-    
-    attachInterrupt(ECHO_PINS[0], echoHigh<0>, RISING);
-    attachInterrupt(ECHO_PINS[1], echoHigh<1>, RISING);
-    attachInterrupt(ECHO_PINS[2], echoHigh<2>, RISING);
+  }
 
-    attachInterrupt(ECHO_PINS[0], echoLow<0>, FALLING);
-    attachInterrupt(ECHO_PINS[1], echoLow<1>, FALLING);
-    attachInterrupt(ECHO_PINS[2], echoLow<2>, FALLING);
+  attachInterrupt(digitalPinToInterrupt(ECHO_PINS[0]), echo<0>, CHANGE);
+  //attachInterrupt(ECHO_PINS[1], echoHigh<1>, RISING);
+  //attachInterrupt(ECHO_PINS[2], echoHigh<2>, RISING);
 
-    pulse();
-    }
+  //attachInterrupt(digitalPinToInterrupt(ECHO_PINS[0]), echoLow<0>, FALLING);
+  //attachInterrupt(ECHO_PINS[1], echoLow<1>, FALLING);
+  //attachInterrupt(ECHO_PINS[2], echoLow<2>, FALLING);
+
+  sendingPulses();
+}
 }
 
 #endif
