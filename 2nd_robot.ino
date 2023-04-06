@@ -12,13 +12,13 @@ unsigned long timeout[SR_COUNT];
 const uint8_t echo_pins[SR_COUNT] = {0,1,2};
 const uint8_t trig_pins[SR_COUNT] = {3,4,5};
 
-template<uint8_t i>
+template<int i>
 void echo_high(){
   timer[i] = micros();   
   flag[i] = true;
 }
 
-template<uint8_t i>
+template<int i>
 void echo_low(){
   if(flag[i]){
     pulse_time_us[i] = millis()-timer[i];
