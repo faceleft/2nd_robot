@@ -10,21 +10,6 @@ void setup()
 
 void loop()
 {
-  /*
-  Serial.print(dm::pulseFlag[0]);
-  Serial.print(" ");
-  Serial.print(dm::changeFlag);
-  Serial.print(" ");
-  Serial.print(dm::readyFlag[0]);
-  Serial.print(" ");
-  Serial.print(dm::timer[0]);
-  Serial.print(" ");
-  Serial.print(dm::pulseTimeUs[0]);
-  Serial.print(" ");
-  Serial.print(dm::con);
-  Serial.print(" ");
-  Serial.println();
-  */
   if (dm::changeFlag) {
     dm::changeFlag = false;
     //Serial.print("Sensors: ");
