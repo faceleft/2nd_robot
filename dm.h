@@ -65,12 +65,8 @@ void init() {
     pinMode(TRIG_PINS[i], OUTPUT);
     pinMode(ECHO_PINS[i], INPUT);
     digitalWrite(TRIG_PINS[i], 0);
-
   }
-
   attachInterrupt(digitalPinToInterrupt(ECHO_PINS[0]), echo<0>, CHANGE);
-
-
   sendingPulses();
 }
 }
