@@ -69,12 +69,7 @@ void init() {
   }
 
   attachInterrupt(digitalPinToInterrupt(ECHO_PINS[0]), echo<0>, CHANGE);
-  //attachInterrupt(ECHO_PINS[1], echoHigh<1>, RISING);
-  //attachInterrupt(ECHO_PINS[2], echoHigh<2>, RISING);
 
-  //attachInterrupt(digitalPinToInterrupt(ECHO_PINS[0]), echoLow<0>, FALLING);
-  //attachInterrupt(ECHO_PINS[1], echoLow<1>, FALLING);
-  //attachInterrupt(ECHO_PINS[2], echoLow<2>, FALLING);
 
   sendingPulses();
 }
